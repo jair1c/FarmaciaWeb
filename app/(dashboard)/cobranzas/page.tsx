@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { ListaCuentasPorCobrar } from "@/components/cobranzas/ListaCuentasPorCobrar";
-import { requireRol } from "@/lib/permisos";
+import { requireRol } from "@/lib/auth-server";
 
 async function getCuentas() {
   const supabase = createClient();

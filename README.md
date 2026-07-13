@@ -40,6 +40,33 @@ Sistema web para administrar inventario (con control de lotes y vencimientos), v
    npm run dev
    ```
 
+## Subir a GitHub y desplegar en Vercel
+
+El proyecto ya está listo para esto (incluye `.gitignore` y `package-lock.json`, y verifiqué que `npm run build` compila sin errores). Pasos:
+
+1. Sube el proyecto a un repositorio de GitHub (si nunca lo hiciste desde tu máquina):
+   ```bash
+   git init
+   git add .
+   git commit -m "Primer commit"
+   git branch -M main
+   git remote add origin https://github.com/tu-usuario/tu-repo.git
+   git push -u origin main
+   ```
+2. En [vercel.com](https://vercel.com), "Add New Project" → importa ese repositorio. Vercel detecta Next.js automáticamente, no necesitas configurar nada del build.
+3. Antes de darle "Deploy", agrega las variables de entorno (Project Settings → Environment Variables) con los mismos valores de tu `.env.local`:
+   - `NEXT_PUBLIC_SUPABASE_URL`
+   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+   - `SUPABASE_SERVICE_ROLE_KEY` ⚠️ marca esta como "Sensitive" — nunca debe quedar expuesta al navegador
+   - `NUBEFACT_TOKEN`, `NUBEFACT_URL_SANDBOX`/`PRODUCCION`, `NUBEFACT_SERIE_BOLETA`, `NUBEFACT_SERIE_FACTURA` (cuando los tengas)
+4. Deploy. Cada push a `main` vuelve a desplegar automáticamente.
+
+**Importante sobre `.env.local`:** ese archivo nunca se sube a GitHub (está en `.gitignore` a propósito, porque contiene tu service role key). En Vercel, las variables se configuran aparte, en el panel del proyecto — no dependen de que subas ese archivo.
+
+## Nota de seguridad: Next.js
+
+Este proyecto usa Next.js 14.2.35 (la última versión estable de la rama 14, sin la vulnerabilidad crítica que tenían versiones anteriores de 14.x). Sigue habiendo algunos avisos de `npm audit` relacionados con Next 14 en general que solo se resuelven saltando a Next 15/16 — esa migración implica cambios de código (en Next 15+, `cookies()` y `headers()` pasan a ser asíncronos), así que no la hice automáticamente para no romper nada sin que lo pruebes primero. Cuando quieras dar ese salto, dímelo y lo hacemos con cuidado.
+
 ## Estructura del proyecto
 
 ```

@@ -1,5 +1,5 @@
 import { Sidebar } from "@/components/Sidebar";
-import { getPerfilActual } from "@/lib/permisos";
+import { getPerfilActual } from "@/lib/auth-server";
 
 export default async function DashboardLayout({
   children,

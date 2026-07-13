@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { NuevaCompraModal } from "@/components/compras/NuevaCompraModal";
-import { requireRol } from "@/lib/permisos";
+import { requireRol } from "@/lib/auth-server";
 
 async function getDatos() {
   const supabase = createClient();

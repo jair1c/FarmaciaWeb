@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import { requireRol } from "@/lib/permisos";
+import { requireRol } from "@/lib/auth-server";
 import { SelectorSucursal } from "@/components/SelectorSucursal";
 
 async function getMetricas(sucursalId?: string) {

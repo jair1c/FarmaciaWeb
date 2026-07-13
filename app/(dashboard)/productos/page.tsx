@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { LoteBadge } from "@/components/LoteBadge";
 import { NuevoProductoModal } from "@/components/productos/NuevoProductoModal";
-import { requireRol } from "@/lib/permisos";
+import { requireRol } from "@/lib/auth-server";
 
 async function getProductos() {
   const supabase = createClient();

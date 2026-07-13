@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { LoteBadge } from "@/components/LoteBadge";
-import { requireRol } from "@/lib/permisos";
+import { requireRol } from "@/lib/auth-server";
 import { SelectorSucursal } from "@/components/SelectorSucursal";
 
 async function getReporte(sucursalId?: string) {

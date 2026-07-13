@@ -3,7 +3,7 @@ import { CategoriasPanel } from "@/components/configuracion/CategoriasPanel";
 import { ProveedoresPanel } from "@/components/configuracion/ProveedoresPanel";
 import { SucursalesPanel } from "@/components/configuracion/SucursalesPanel";
 import { UsuariosPanel } from "@/components/configuracion/UsuariosPanel";
-import { requireRol } from "@/lib/permisos";
+import { requireRol } from "@/lib/auth-server";
 
 async function getDatos() {
   const supabase = createClient();
