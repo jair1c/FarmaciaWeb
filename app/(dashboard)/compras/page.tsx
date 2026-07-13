@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { NuevaCompraModal } from "@/components/compras/NuevaCompraModal";
+import { requireRol } from "@/lib/permisos";
 
 async function getDatos() {
   const supabase = createClient();
@@ -17,6 +18,8 @@ async function getDatos() {
 }
 
 export default async function ComprasPage() {
+  await requireRol(["admin"]);
+
   const { compras, productos, proveedores } = await getDatos();
 
   return (

@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { VentaPOS } from "@/components/pos/VentaPOS";
+import { requireRol } from "@/lib/permisos";
 
 async function getDatos() {
   const supabase = createClient();
@@ -25,6 +26,8 @@ async function getDatos() {
 }
 
 export default async function VentasPage() {
+  await requireRol(["admin", "farmaceutico", "cajero"]);
+
   const { productos, clientes } = await getDatos();
 
   return (

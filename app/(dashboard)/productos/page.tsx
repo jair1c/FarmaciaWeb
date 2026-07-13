@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { LoteBadge } from "@/components/LoteBadge";
 import { NuevoProductoModal } from "@/components/productos/NuevoProductoModal";
+import { requireRol } from "@/lib/permisos";
 
 async function getProductos() {
   const supabase = createClient();
@@ -20,6 +21,8 @@ async function getCategorias() {
 }
 
 export default async function ProductosPage() {
+  await requireRol(["admin", "farmaceutico"]);
+
   const [productos, categorias] = await Promise.all([getProductos(), getCategorias()]);
 
   return (

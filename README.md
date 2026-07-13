@@ -24,12 +24,16 @@ Sistema web para administrar inventario (con control de lotes y vencimientos), v
    5. `sql/compra_funciones.sql`
    6. `sql/reportes_vista.sql`
    7. `sql/politicas_rls_catalogo.sql`
+   8. `sql/politicas_multisucursal.sql`
+   9. `sql/perfiles_email.sql`
 
 3. Copiar `.env.example` a `.env.local` y completar con las credenciales de tu proyecto Supabase (Settings → API) y, cuando lo tengas, tu token de Nubefact.
 
 4. Crear el primer usuario administrador:
    - En Supabase → Authentication, crea un usuario con su correo/contraseña.
-   - En la tabla `perfiles`, inserta una fila con ese `id`, `nombre`, `rol = 'admin'` y `sucursal_id` (crea antes una fila en `sucursales`).
+   - Crea antes una fila en `sucursales` (tu primera sucursal).
+   - En la tabla `perfiles`, inserta una fila con ese `id` (el mismo que el del usuario de Auth), `nombre`, `email` (el mismo correo), `rol = 'admin'`, `sucursal_id` y `activo = true`.
+   - Desde ese usuario admin, ya puedes crear el resto del personal directamente desde Configuración → Personal (no hace falta tocar Supabase de nuevo).
 
 5. Levantar el proyecto:
    ```bash
@@ -49,20 +53,23 @@ app/
     cobranzas/             → cuentas por cobrar y registro de pagos
     compras/               → registro de compras (genera lotes automáticamente)
     reportes/              → ventas del mes, utilidad, más vendidos, vencimientos
-    configuracion/         → categorías y proveedores
-  api/facturacion/        → integración con Nubefact (fase 5)
+    configuracion/         → categorías, proveedores, sucursales y personal (solo admin)
+  api/facturacion/        → integración con Nubefact
   api/ventas/             → registra una venta llamando a la función crear_venta
   api/cobranzas/          → registra un pago llamando a la función registrar_pago
   api/compras/            → registra una compra llamando a la función crear_compra
   api/categorias/         → crear/eliminar categorías
   api/proveedores/        → crear/eliminar proveedores
-components/               → Sidebar, LoteBadge (etiqueta de lote/vencimiento)
+  api/sucursales/         → crear sucursales (solo admin)
+  api/usuarios/           → crear personal (Auth + perfil) y activar/desactivar (solo admin)
+components/               → Sidebar (filtrado por rol), LoteBadge, CerrarSesionButton, SelectorSucursal
 components/pos/            → VentaPOS (carrito), BotonImprimir, EmitirSunatButton
 components/productos/      → NuevoProductoModal
 components/cobranzas/      → ListaCuentasPorCobrar, RegistrarPagoModal
 components/compras/        → NuevaCompraModal
-components/configuracion/  → CategoriasPanel, ProveedoresPanel
-lib/supabase/             → clientes de Supabase (browser y server)
+components/configuracion/  → CategoriasPanel, ProveedoresPanel, SucursalesPanel, UsuariosPanel
+lib/permisos.ts            → roles, rutas permitidas por rol, requireRol() para proteger páginas
+lib/supabase/             → clientes de Supabase (browser, server y admin/service-role)
 lib/nubefact.ts            → construcción del payload y envío a la API de Nubefact
 sql/schema.sql            → esquema completo de base de datos + RLS
 sql/politicas_rls.sql      → políticas RLS adicionales (lotes, venta_detalle, cobranzas)
@@ -70,7 +77,9 @@ sql/venta_funciones.sql    → función crear_venta (descuento de stock FEFO, tr
 sql/cobranza_funciones.sql → vista de cuentas por cobrar + función registrar_pago
 sql/compra_funciones.sql   → función crear_compra (genera lotes automáticamente por línea)
 sql/reportes_vista.sql     → vista con costo real por línea vendida (para calcular utilidad)
-sql/politicas_rls_catalogo.sql → políticas para categorías, productos, proveedores, clientes, compras (corrige el error "violates row-level security policy")
+sql/politicas_rls_catalogo.sql → políticas para categorías, productos, proveedores, clientes, compras
+sql/politicas_multisucursal.sql → el rol admin ve todas las sucursales; cajero/farmacéutico solo la suya
+sql/perfiles_email.sql     → agrega columna email a perfiles (para listar personal)
 middleware.ts             → protege las rutas del dashboard sin sesión
 ```
 
@@ -86,7 +95,29 @@ Paleta "botica": verde pino (`pine`), ámbar de frasco antiguo (`amber`), papel 
 4. ✅ Compras: ingreso de mercadería, cada línea genera su propio lote
 5. ✅ Reportes/Configuración: ventas y utilidad del mes, más vendidos, vencimientos, categorías y proveedores
 6. ✅ Facturación electrónica SUNAT vía Nubefact (implementada — falta probar con tus credenciales reales)
-7. ⬜ Multi-sucursal: filtros por sucursal y reportes consolidados (el esquema ya lo soporta)
+7. ✅ Multi-sucursal: admin ve todas las sucursales (con selector), cajero/farmacéutico solo la suya
+
+## Roles y personal
+
+Hay 3 roles, cada uno con su propio "inicio" y menú lateral:
+
+| Rol | Puede abrir | Pensado para |
+|---|---|---|
+| **admin** | Todo (Panel, Productos, Ventas, Cobranza, Compras, Reportes, Configuración) | El dueño/gerente |
+| **farmacéutico** | Productos, Ventas, Cobranza | Quien atiende y también controla el stock |
+| **cajero** | Ventas, Cobranza | Solo cobra, no ve reportes ni gestiona inventario |
+
+Esto se aplica en dos capas, no solo escondiendo botones:
+- `components/Sidebar.tsx` oculta del menú lo que el rol no puede usar.
+- `lib/permisos.ts` (`requireRol`) se ejecuta al cargar cada página en el servidor y **redirige** si alguien entra directo a una URL que no le corresponde (ej. un cajero escribiendo `/reportes` a mano).
+- Además, la base de datos (RLS) ya limita qué sucursal puede ver/modificar cada quien, así que aunque alguien manipulara la app, Supabase seguiría bloqueando el acceso a datos de otra sucursal.
+
+### Cómo agregar a una persona de tu equipo
+
+1. Entra como admin → **Configuración → Personal**.
+2. Completa nombre, correo (será su usuario para iniciar sesión), una contraseña temporal, su rol y su sucursal.
+3. Comunícale el correo y contraseña; puede cambiarla después desde Supabase Auth si quieres agregar un flujo de "olvidé mi contraseña" más adelante.
+4. Si alguien deja de trabajar contigo, no lo elimines: dale click a **Desactivar** en esa misma tabla. Así conservas el historial de sus ventas, pero ya no puede iniciar sesión.
 
 ## Sobre la integración con Nubefact
 

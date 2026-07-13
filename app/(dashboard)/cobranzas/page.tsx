@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { ListaCuentasPorCobrar } from "@/components/cobranzas/ListaCuentasPorCobrar";
+import { requireRol } from "@/lib/permisos";
 
 async function getCuentas() {
   const supabase = createClient();
@@ -17,6 +18,8 @@ async function getCuentas() {
 }
 
 export default async function CobranzasPage() {
+  await requireRol(["admin", "farmaceutico", "cajero"]);
+
   const cuentas = await getCuentas();
   const totalPendiente = cuentas.reduce((a, c) => a + c.saldo, 0);
 

@@ -11,19 +11,29 @@ import {
   BarChart3,
   Settings,
 } from "lucide-react";
+import { RUTAS_POR_ROL, type Rol } from "@/lib/permisos";
+import { CerrarSesionButton } from "@/components/CerrarSesionButton";
 
 const items = [
-  { href: "/dashboard", label: "Panel", icon: LayoutDashboard },
-  { href: "/productos", label: "Productos y lotes", icon: Pill },
-  { href: "/ventas", label: "Ventas", icon: ShoppingCart },
-  { href: "/cobranzas", label: "Cobranza", icon: Wallet },
-  { href: "/compras", label: "Compras", icon: Truck },
-  { href: "/reportes", label: "Reportes", icon: BarChart3 },
-  { href: "/configuracion", label: "Configuración", icon: Settings },
+  { href: "/dashboard", ruta: "dashboard", label: "Panel", icon: LayoutDashboard },
+  { href: "/productos", ruta: "productos", label: "Productos y lotes", icon: Pill },
+  { href: "/ventas", ruta: "ventas", label: "Ventas", icon: ShoppingCart },
+  { href: "/cobranzas", ruta: "cobranzas", label: "Cobranza", icon: Wallet },
+  { href: "/compras", ruta: "compras", label: "Compras", icon: Truck },
+  { href: "/reportes", ruta: "reportes", label: "Reportes", icon: BarChart3 },
+  { href: "/configuracion", ruta: "configuracion", label: "Configuración", icon: Settings },
 ];
 
-export function Sidebar() {
+const ETIQUETA_ROL: Record<Rol, string> = {
+  admin: "Administrador",
+  farmaceutico: "Farmacéutico",
+  cajero: "Cajero",
+};
+
+export function Sidebar({ rol, nombre }: { rol: Rol; nombre?: string }) {
   const pathname = usePathname();
+  const permitidas = RUTAS_POR_ROL[rol] ?? [];
+  const itemsVisibles = items.filter((i) => permitidas.includes(i.ruta));
 
   return (
     <aside className="flex h-screen w-56 flex-col border-r border-sage-200 bg-pine-950 text-paper">
@@ -35,7 +45,7 @@ export function Sidebar() {
       </div>
 
       <nav className="flex-1 space-y-1 px-3 py-4">
-        {items.map(({ href, label, icon: Icon }) => {
+        {itemsVisibles.map(({ href, label, icon: Icon }) => {
           const active = pathname.startsWith(href);
           return (
             <Link
@@ -53,6 +63,12 @@ export function Sidebar() {
           );
         })}
       </nav>
+
+      <div className="border-t border-white/10 px-5 py-4">
+        {nombre && <p className="text-sm text-paper">{nombre}</p>}
+        <p className="text-xs text-paper/50">{ETIQUETA_ROL[rol]}</p>
+        <CerrarSesionButton />
+      </div>
     </aside>
   );
 }

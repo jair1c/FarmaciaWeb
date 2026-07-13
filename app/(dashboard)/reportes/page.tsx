@@ -1,7 +1,9 @@
 import { createClient } from "@/lib/supabase/server";
 import { LoteBadge } from "@/components/LoteBadge";
+import { requireRol } from "@/lib/permisos";
+import { SelectorSucursal } from "@/components/SelectorSucursal";
 
-async function getReporte() {
+async function getReporte(sucursalId?: string) {
   const supabase = createClient();
 
   const inicioMes = new Date();
@@ -10,18 +12,20 @@ async function getReporte() {
 
   const en60dias = new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString();
 
-  const [{ data: detalleMes }, { data: lotesPorVencer }] = await Promise.all([
-    supabase
-      .from("vista_reporte_ventas")
-      .select("*")
-      .gte("creado_en", inicioMes.toISOString()),
-    supabase
-      .from("lotes")
-      .select("id, numero_lote, fecha_vencimiento, cantidad_actual, productos(nombre)")
-      .lte("fecha_vencimiento", en60dias)
-      .gt("cantidad_actual", 0)
-      .order("fecha_vencimiento", { ascending: true }),
-  ]);
+  let detalleQuery = supabase.from("vista_reporte_ventas").select("*").gte("creado_en", inicioMes.toISOString());
+  let lotesQuery = supabase
+    .from("lotes")
+    .select("id, numero_lote, fecha_vencimiento, cantidad_actual, productos(nombre)")
+    .lte("fecha_vencimiento", en60dias)
+    .gt("cantidad_actual", 0)
+    .order("fecha_vencimiento", { ascending: true });
+
+  if (sucursalId) {
+    detalleQuery = detalleQuery.eq("sucursal_id", sucursalId);
+    lotesQuery = lotesQuery.eq("sucursal_id", sucursalId);
+  }
+
+  const [{ data: detalleMes }, { data: lotesPorVencer }] = await Promise.all([detalleQuery, lotesQuery]);
 
   const filas = detalleMes ?? [];
 
@@ -45,13 +49,31 @@ async function getReporte() {
   };
 }
 
-export default async function ReportesPage() {
-  const { ingresoMes, utilidadMes, masVendidos, lotesPorVencer } = await getReporte();
+async function getSucursales() {
+  const supabase = createClient();
+  const { data } = await supabase.from("sucursales").select("id, nombre").eq("activa", true).order("nombre");
+  return data ?? [];
+}
+
+export default async function ReportesPage({
+  searchParams,
+}: {
+  searchParams: { sucursal?: string };
+}) {
+  await requireRol(["admin"]);
+
+  const sucursales = await getSucursales();
+  const { ingresoMes, utilidadMes, masVendidos, lotesPorVencer } = await getReporte(searchParams.sucursal);
 
   return (
     <div>
-      <h1 className="font-display text-2xl font-semibold text-pine-900">Reportes</h1>
-      <p className="mt-1 text-sm text-pine-700/70">Resumen del mes en curso</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="font-display text-2xl font-semibold text-pine-900">Reportes</h1>
+          <p className="mt-1 text-sm text-pine-700/70">Resumen del mes en curso</p>
+        </div>
+        <SelectorSucursal sucursales={sucursales} />
+      </div>
 
       <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div className="rounded-sm border border-sage-200 bg-white p-5">
