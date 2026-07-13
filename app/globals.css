@@ -1,0 +1,20 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  ::selection {
+    background-color: theme("colors.amber.100");
+  }
+}
+
+@layer components {
+  /* Etiqueta estilo "frasco de botica": usada para mostrar lote y vencimiento */
+  .label-chip {
+    @apply inline-flex items-center gap-1.5 rounded-sm border border-amber-500/40 bg-amber-100 px-2 py-0.5 font-label text-[11px] tracking-wide text-pine-900;
+  }
+
+  .label-chip--alerta {
+    @apply border-alert/40 bg-alert/10 text-alert;
+  }
+}
