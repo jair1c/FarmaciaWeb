@@ -61,6 +61,8 @@ El proyecto ya está listo para esto (incluye `.gitignore` y `package-lock.json`
    - `NUBEFACT_TOKEN`, `NUBEFACT_URL_SANDBOX`/`PRODUCCION`, `NUBEFACT_SERIE_BOLETA`, `NUBEFACT_SERIE_FACTURA` (cuando los tengas)
 4. Deploy. Cada push a `main` vuelve a desplegar automáticamente.
 
+**Si el build falla con "Your project's URL and API key are required to create a Supabase client"**: significa que faltan las variables de entorno en Vercel (o que se agregaron después del primer deploy — en ese caso hay que volver a desplegar desde la pestaña Deployments para que tomen efecto). La página `/login` ya está configurada para renderizarse dinámicamente en cada visita en vez de generarse como HTML estático en el build, así que una vez que las variables estén bien puestas, este error no debería volver a aparecer.
+
 **Importante sobre `.env.local`:** ese archivo nunca se sube a GitHub (está en `.gitignore` a propósito, porque contiene tu service role key). En Vercel, las variables se configuran aparte, en el panel del proyecto — no dependen de que subas ese archivo.
 
 ## Nota de seguridad: Next.js
@@ -71,7 +73,7 @@ Este proyecto usa Next.js 14.2.35 (la última versión estable de la rama 14, si
 
 ```
 app/
-  login/                 → inicio de sesión
+  login/                 → inicio de sesión (page.tsx fuerza renderizado dinámico; el formulario vive en components/LoginForm.tsx)
   (dashboard)/            → rutas protegidas (requieren sesión)
     dashboard/            → panel con métricas del día
     productos/             → catálogo + lotes + vencimientos
