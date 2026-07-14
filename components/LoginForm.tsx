@@ -1,11 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
 export function LoginForm() {
-  const router = useRouter();
   const supabase = createClient();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -25,8 +23,13 @@ export function LoginForm() {
       return;
     }
 
-    router.push("/dashboard");
-    router.refresh();
+    // Navegación completa (no router.push) a propósito: garantiza que la
+    // cookie de sesión que acaba de escribir signInWithPassword ya esté
+    // presente cuando el servidor reciba la siguiente petición. Con
+    // router.push existía una pequeña ventana de tiempo donde el servidor
+    // podía recibir la navegación sin la cookie todavía escrita, y te
+    // devolvía a /login.
+    window.location.href = "/dashboard";
   }
 
   return (

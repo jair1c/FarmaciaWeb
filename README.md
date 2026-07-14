@@ -157,3 +157,12 @@ Implementé el mapeo completo (`lib/nubefact.ts`) siguiendo la estructura están
 3. Desde el ticket de una venta con tipo Boleta o Factura, usa el botón "Emitir electrónicamente" y revisa la respuesta guardada en `ventas.sunat_respuesta` si algo falla.
 4. Verifica contra tu manual de integración (ayuda.nubefact.com) que los nombres de campo coincidan exactamente — Nubefact puede tener variaciones según el tipo de cuenta.
 5. El correlativo (`numero`) se calcula contando comprobantes previos de la misma serie; si vas a emitir desde varias sucursales al mismo tiempo, conviene reemplazarlo por una tabla de correlativos con bloqueo (`for update`) para evitar duplicados.
+
+## Solución de problemas
+
+**"Entro y a los milisegundos me regresa a /login"**: ya corregido — `LoginForm` y `CerrarSesionButton` usan `window.location.href` (recarga completa) en vez de `router.push` para navegar después de iniciar/cerrar sesión. Con `router.push` existía una pequeña ventana de tiempo donde el servidor podía procesar la navegación antes de que la cookie de sesión terminara de escribirse en el navegador, y te devolvía al login. Si esto vuelve a pasar después de todo, revisa en este orden:
+1. Que el `id` en `perfiles` coincida exactamente con el de `auth.users` (créalo siempre desde Configuración → Personal, no a mano en Supabase, para evitar este desajuste).
+2. Que `activo = true` y `rol` sea `admin`, `cajero` o `farmaceutico` exactamente.
+3. Que las políticas RLS de `perfiles` permitan `auth.uid() = id` (consulta `select * from pg_policies where tablename = 'perfiles'`).
+4. Que `NEXT_PUBLIC_SUPABASE_URL` en Vercel apunte al mismo proyecto de Supabase que estás consultando.
+
