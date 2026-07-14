@@ -15,42 +15,26 @@ export async function requireRol(rolesPermitidos: Rol[]): Promise<Perfil> {
 
   const {
     data: { user },
-    error: errorUsuario,
   } = await supabase.auth.getUser();
 
-  if (!user) {
-    console.log("[requireRol] sin usuario en la sesión.", errorUsuario?.message ?? "(sin error explícito)");
-    redirect("/login");
-  }
+  if (!user) redirect("/login");
 
-  const { data: perfil, error: errorPerfil } = await supabase
+  const { data: perfil } = await supabase
     .from("perfiles")
     .select("id, nombre, rol, sucursal_id, activo")
     .eq("id", user.id)
     .single();
 
   if (!perfil) {
-    console.log(
-      "[requireRol] usuario autenticado pero sin perfil encontrado. user.id =",
-      user.id,
-      "error:",
-      errorPerfil?.message ?? "(sin error explícito, 0 filas)"
-    );
+    // Usuario autenticado en Supabase Auth pero sin fila en `perfiles` todavía
     redirect("/login");
   }
 
   if (!perfil.activo) {
-    console.log("[requireRol] perfil encontrado pero inactivo. user.id =", user.id);
     redirect("/login");
   }
 
   if (!rolesPermitidos.includes(perfil.rol as Rol)) {
-    console.log(
-      "[requireRol] rol no autorizado para esta ruta. rol =",
-      perfil.rol,
-      "permitidos =",
-      rolesPermitidos
-    );
     redirect(INICIO_POR_ROL[perfil.rol as Rol] ?? "/ventas");
   }
 

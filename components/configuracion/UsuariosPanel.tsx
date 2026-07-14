@@ -73,7 +73,7 @@ export function UsuariosPanel({ usuarios, sucursales, usuarioActualId }: { usuar
   }
 
   return (
-    <div className="rounded-sm border border-sage-200 bg-white p-5 lg:col-span-2">
+    <div className="rounded-sm border border-sage-200 bg-white p-5">
       <h2 className="font-display text-lg font-semibold text-pine-900">Personal</h2>
       <p className="mt-0.5 text-sm text-pine-700/70">
         Cada persona necesita su propio usuario: así cada venta y cobro queda registrado con quién lo hizo, y puedes

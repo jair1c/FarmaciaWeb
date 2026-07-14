@@ -26,6 +26,7 @@ Sistema web para administrar inventario (con control de lotes y vencimientos), v
    7. `sql/politicas_rls_catalogo.sql`
    8. `sql/politicas_multisucursal.sql`
    9. `sql/perfiles_email.sql`
+   10. `sql/fix_recursion_rls.sql` ⚠️ crítico — corrige un bug de recursión infinita en las políticas de `perfiles` que causaba el rebote intermitente al login
 
 3. Copiar `.env.example` a `.env.local` y completar con las credenciales de tu proyecto Supabase (Settings → API) y, cuando lo tengas, tu token de Nubefact.
 
@@ -109,6 +110,7 @@ sql/reportes_vista.sql     → vista con costo real por línea vendida (para cal
 sql/politicas_rls_catalogo.sql → políticas para categorías, productos, proveedores, clientes, compras
 sql/politicas_multisucursal.sql → el rol admin ve todas las sucursales; cajero/farmacéutico solo la suya
 sql/perfiles_email.sql     → agrega columna email a perfiles (para listar personal)
+sql/fix_recursion_rls.sql  → corrige recursión infinita en políticas de perfiles (función is_admin())
 middleware.ts             → protege las rutas del dashboard sin sesión
 ```
 
@@ -160,9 +162,12 @@ Implementé el mapeo completo (`lib/nubefact.ts`) siguiendo la estructura están
 
 ## Solución de problemas
 
-**"Entro y a los milisegundos me regresa a /login"**: ya corregido — `LoginForm` y `CerrarSesionButton` usan `window.location.href` (recarga completa) en vez de `router.push` para navegar después de iniciar/cerrar sesión. Con `router.push` existía una pequeña ventana de tiempo donde el servidor podía procesar la navegación antes de que la cookie de sesión terminara de escribirse en el navegador, y te devolvía al login. Si esto vuelve a pasar después de todo, revisa en este orden:
-1. Que el `id` en `perfiles` coincida exactamente con el de `auth.users` (créalo siempre desde Configuración → Personal, no a mano en Supabase, para evitar este desajuste).
-2. Que `activo = true` y `rol` sea `admin`, `cajero` o `farmaceutico` exactamente.
-3. Que las políticas RLS de `perfiles` permitan `auth.uid() = id` (consulta `select * from pg_policies where tablename = 'perfiles'`).
-4. Que `NEXT_PUBLIC_SUPABASE_URL` en Vercel apunte al mismo proyecto de Supabase que estás consultando.
+**"Entro y a los milisegundos/segundos me regresa a /login" (RESUELTO):** la causa raíz era una **recursión infinita en las políticas RLS de `perfiles`** — la política que permitía a un admin ver todo el personal se consultaba a sí misma dentro de su propia condición (`EXISTS (SELECT ... FROM perfiles ...)`), causando que Postgres devolviera el error `infinite recursion detected in policy for relation "perfiles"` de forma intermitente (dependía del plan de consulta que eligiera Postgres en cada momento, por eso a veces funcionaba y a veces no). `sql/fix_recursion_rls.sql` lo corrige moviendo esa verificación a una función `is_admin()` con `security definer`, que al ejecutarse con permisos elevados no vuelve a disparar la misma política. **Este archivo es obligatorio, ejecútalo si no lo has hecho.**
+
+Si en el futuro aparece un problema similar (rebote a login sin razón aparente), el orden de diagnóstico que nos funcionó fue:
+1. Revisar los **Runtime Logs de Vercel** (pestaña Logs) en el momento exacto del rebote, haciendo clic en la petición específica para ver su detalle expandido — no solo la vista de lista.
+2. Buscar mensajes de error de Postgres/Supabase ahí (como el de recursión infinita), no solo en la consola del navegador — los `redirect()` de Next.js no generan errores visibles en el navegador.
+3. Verificar que el `id` en `perfiles` coincida exactamente con el de `auth.users`, que `activo = true` y que `rol` sea válido.
+4. Verificar que `NEXT_PUBLIC_SUPABASE_URL`/`ANON_KEY` en Vercel coincidan con el proyecto de Supabase correcto.
+
 

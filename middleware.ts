@@ -24,7 +24,6 @@ export async function middleware(request: NextRequest) {
 
   const {
     data: { user },
-    error: errorUsuario,
   } = await supabase.auth.getUser();
 
   const isDashboardRoute = request.nextUrl.pathname.startsWith("/dashboard") ||
@@ -36,14 +35,6 @@ export async function middleware(request: NextRequest) {
     request.nextUrl.pathname.startsWith("/configuracion");
 
   if (!user && isDashboardRoute) {
-    console.log(
-      "[middleware] redirigiendo a /login. ruta =",
-      request.nextUrl.pathname,
-      "cookies presentes =",
-      request.cookies.getAll().map((c) => c.name),
-      "error auth =",
-      errorUsuario?.message ?? "(sin error explícito)"
-    );
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
