@@ -9,9 +9,9 @@ export default async function DashboardLayout({
   const perfil = await getPerfilActual();
 
   return (
-    <div className="flex">
+    <div className="flex h-screen overflow-hidden">
       <Sidebar rol={perfil?.rol ?? "cajero"} nombre={perfil?.nombre} />
-      <main className="flex-1 p-8">{children}</main>
+      <main className="flex-1 overflow-y-auto p-8">{children}</main>
     </div>
   );
 }
