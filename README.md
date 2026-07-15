@@ -27,6 +27,7 @@ Sistema web para administrar inventario (con control de lotes y vencimientos), v
    8. `sql/politicas_multisucursal.sql`
    9. `sql/perfiles_email.sql`
    10. `sql/fix_recursion_rls.sql` ⚠️ crítico — corrige un bug de recursión infinita en las políticas de `perfiles` que causaba el rebote intermitente al login
+   11. `sql/caja_funciones.sql` (requiere que el paso 10 ya esté aplicado, usa su función `is_admin()`)
 
 3. Copiar `.env.example` a `.env.local` y completar con las credenciales de tu proyecto Supabase (Settings → API) y, cuando lo tengas, tu token de Nubefact.
 
@@ -80,12 +81,14 @@ app/
     productos/             → catálogo + lotes + vencimientos
     ventas/                → punto de venta: búsqueda, carrito y checkout
     ventas/[id]/ticket/    → comprobante imprimible de la venta
+    caja/                  → apertura/cierre de caja e historial de turnos
     cobranzas/             → cuentas por cobrar y registro de pagos
     compras/               → registro de compras (genera lotes automáticamente)
     reportes/              → ventas del mes, utilidad, más vendidos, vencimientos
     configuracion/         → categorías, proveedores, sucursales y personal (solo admin)
   api/facturacion/        → integración con Nubefact
   api/ventas/             → registra una venta llamando a la función crear_venta
+  api/caja/               → abre (POST) y cierra (PATCH) turnos de caja
   api/cobranzas/          → registra un pago llamando a la función registrar_pago
   api/compras/            → registra una compra llamando a la función crear_compra
   api/categorias/         → crear/eliminar categorías
@@ -94,6 +97,7 @@ app/
   api/usuarios/           → crear personal (Auth + perfil) y activar/desactivar (solo admin)
 components/               → Sidebar (filtrado por rol), LoteBadge, CerrarSesionButton, SelectorSucursal
 components/pos/            → VentaPOS (carrito), BotonImprimir, EmitirSunatButton
+components/caja/           → AbrirCajaForm, EstadoCajaAbierta, CerrarCajaModal
 components/productos/      → NuevoProductoModal
 components/cobranzas/      → ListaCuentasPorCobrar, RegistrarPagoModal
 components/compras/        → NuevaCompraModal
@@ -111,6 +115,7 @@ sql/politicas_rls_catalogo.sql → políticas para categorías, productos, prove
 sql/politicas_multisucursal.sql → el rol admin ve todas las sucursales; cajero/farmacéutico solo la suya
 sql/perfiles_email.sql     → agrega columna email a perfiles (para listar personal)
 sql/fix_recursion_rls.sql  → corrige recursión infinita en políticas de perfiles (función is_admin())
+sql/caja_funciones.sql     → control de caja: tabla turnos_caja, políticas RLS y funciones abrir_caja/cerrar_caja
 middleware.ts             → protege las rutas del dashboard sin sesión
 ```
 
@@ -127,6 +132,17 @@ Paleta "botica": verde pino (`pine`), ámbar de frasco antiguo (`amber`), papel 
 5. ✅ Reportes/Configuración: ventas y utilidad del mes, más vendidos, vencimientos, categorías y proveedores
 6. ✅ Facturación electrónica SUNAT vía Nubefact (implementada — falta probar con tus credenciales reales)
 7. ✅ Multi-sucursal: admin ve todas las sucursales (con selector), cajero/farmacéutico solo la suya
+8. ✅ Control de caja: apertura/cierre de turno con cálculo automático de efectivo esperado vs. contado
+
+## Sobre Control de Caja
+
+Cómo funciona: al empezar el turno, cualquier rol operativo (cajero, farmacéutico o admin) abre la caja indicando el efectivo con el que arranca. El sistema no vuelve a pedir nada hasta el cierre — en ese momento, calcula automáticamente cuánto efectivo *debería* haber (monto de apertura + ventas en efectivo + cobros en efectivo registrados durante ese turno) y lo compara contra lo que la persona cuenta físicamente. La diferencia queda guardada en el historial, sin importar si es positiva o negativa.
+
+Cosas a tener en cuenta:
+- Solo puede haber **una caja abierta por sucursal a la vez** — si alguien intenta abrir otra sin cerrar la anterior, el sistema se lo impide.
+- El cálculo del efectivo esperado **no distingue turnos que se solapan entre cajeros distintos en la misma sucursal** — si tu operación tiene más de un cajero atendiendo simultáneamente en el mismo punto, todos comparten el mismo turno de caja (lo cual generalmente es lo correcto: una caja física, un turno).
+- No hay todavía forma de registrar **egresos de caja** (por ejemplo, si sacas dinero para comprar algo con la caja chica) — el efectivo esperado asume que nada sale de la caja aparte de lo que ya se contempla. Si lo necesitas, es una extensión sencilla: una tabla `movimientos_caja` con montos positivos/negativos.
+
 
 ## Roles y personal
 
