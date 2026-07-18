@@ -29,6 +29,7 @@ Sistema web para administrar inventario (con control de lotes y vencimientos), v
    10. `sql/fix_recursion_rls.sql` ⚠️ crítico — corrige un bug de recursión infinita en las políticas de `perfiles` que causaba el rebote intermitente al login
    11. `sql/caja_funciones.sql` (requiere que el paso 10 ya esté aplicado, usa su función `is_admin()`)
    12. `sql/devoluciones_funciones.sql` (requiere que el paso 11 ya esté aplicado, reemplaza `cerrar_caja()`)
+   13. `sql/auditoria.sql` (requiere que el paso 10 ya esté aplicado, usa su función `is_admin()`)
 
 3. Copiar `.env.example` a `.env.local` y completar con las credenciales de tu proyecto Supabase (Settings → API) y, cuando lo tengas, tu token de Nubefact.
 
@@ -88,6 +89,7 @@ app/
     compras/               → registro de compras (genera lotes automáticamente)
     reportes/              → ventas del mes, utilidad, más vendidos, vencimientos
     configuracion/         → categorías, proveedores, sucursales y personal (solo admin)
+    auditoria/             → historial de cambios en productos y personal (solo admin)
   api/facturacion/        → integración con Nubefact
   api/ventas/             → registra una venta llamando a la función crear_venta
   api/caja/               → abre (POST) y cierra (PATCH) turnos de caja
@@ -105,6 +107,7 @@ components/productos/      → NuevoProductoModal
 components/cobranzas/      → ListaCuentasPorCobrar, RegistrarPagoModal
 components/compras/        → NuevaCompraModal
 components/configuracion/  → CategoriasPanel, ProveedoresPanel, SucursalesPanel, UsuariosPanel
+components/auditoria/      → AuditoriaTable (comparador legible de qué cambió)
 lib/permisos.ts            → roles, rutas permitidas por rol, requireRol() para proteger páginas
 lib/supabase/             → clientes de Supabase (browser, server y admin/service-role)
 lib/nubefact.ts            → construcción del payload y envío a la API de Nubefact
@@ -120,6 +123,7 @@ sql/perfiles_email.sql     → agrega columna email a perfiles (para listar pers
 sql/fix_recursion_rls.sql  → corrige recursión infinita en políticas de perfiles (función is_admin())
 sql/caja_funciones.sql     → control de caja: tabla turnos_caja, políticas RLS y funciones abrir_caja/cerrar_caja
 sql/devoluciones_funciones.sql → devoluciones/anulaciones: regresa stock al lote original, actualiza cerrar_caja
+sql/auditoria.sql          → registro de cambios por trigger en productos y perfiles (no depende de la app)
 middleware.ts             → protege las rutas del dashboard sin sesión
 ```
 
@@ -138,6 +142,16 @@ Paleta "botica": verde pino (`pine`), ámbar de frasco antiguo (`amber`), papel 
 7. ✅ Multi-sucursal: admin ve todas las sucursales (con selector), cajero/farmacéutico solo la suya
 8. ✅ Control de caja: apertura/cierre de turno con cálculo automático de efectivo esperado vs. contado
 9. ✅ Devoluciones/anulaciones: por línea y cantidad parcial, con reingreso de stock al lote original
+10. ✅ Auditoría de cambios: quién editó qué y cuándo, en productos y personal
+
+## Sobre Auditoría
+
+A diferencia del resto de módulos, este **no depende de que la app reporte los cambios** — usa triggers de Postgres, así que registra un cambio sin importar si se hizo desde el sistema o directamente en el editor de tablas de Supabase (algo que la mayoría de sistemas de auditoría "desde la aplicación" no pueden garantizar).
+
+Por ahora cubre **productos** (crear/editar/eliminar — sobre todo cambios de precio) y **personal** (cambios de rol o activar/desactivar). Deliberadamente no metí `lotes` ni `ventas` en la auditoría genérica: cada venta genera automáticamente varios cambios en `lotes` (el descuento de stock), así que hubiera inundado el registro con ruido sin aportar mucho — ya tienes trazabilidad de eso a través de `venta_detalle` y `devoluciones`.
+
+Si más adelante quieres auditar otra tabla (por ejemplo, cambios de precio en `compras` o ediciones en `clientes`), es una sola línea SQL agregar el trigger — avísame.
+
 
 ## Sobre Devoluciones / Anulaciones
 

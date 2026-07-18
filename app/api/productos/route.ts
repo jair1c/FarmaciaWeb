@@ -84,3 +84,43 @@ export async function POST(request: NextRequest) {
 
   return NextResponse.json({ producto });
 }
+
+export async function PATCH(request: NextRequest) {
+  const supabase = createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return NextResponse.json({ error: "No autenticado" }, { status: 401 });
+  }
+
+  const { id, nombre, categoria_id, codigo_barras, requiere_receta, precio_venta, stock_minimo, unidad_medida, activo } =
+    await request.json();
+
+  if (!id || !nombre?.trim() || precio_venta === undefined || precio_venta === null) {
+    return NextResponse.json({ error: "Nombre y precio son obligatorios" }, { status: 400 });
+  }
+
+  const { error } = await supabase
+    .from("productos")
+    .update({
+      nombre: nombre.trim(),
+      categoria_id: categoria_id || null,
+      codigo_barras: codigo_barras?.trim() || null,
+      requiere_receta: !!requiere_receta,
+      precio_venta,
+      stock_minimo: stock_minimo ?? 5,
+      unidad_medida: unidad_medida || "unidad",
+      activo: activo ?? true,
+    })
+    .eq("id", id);
+
+  if (error) {
+    const mensaje = error.code === "23505" ? "Ya existe un producto con ese código de barras" : error.message;
+    return NextResponse.json({ error: mensaje }, { status: 400 });
+  }
+
+  return NextResponse.json({ ok: true });
+}

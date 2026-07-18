@@ -11,6 +11,7 @@ import {
   BarChart3,
   Settings,
   Banknote,
+  ClipboardList,
 } from "lucide-react";
 import { RUTAS_POR_ROL, type Rol } from "@/lib/permisos";
 import { CerrarSesionButton } from "@/components/CerrarSesionButton";
@@ -23,6 +24,7 @@ const items = [
   { href: "/cobranzas", ruta: "cobranzas", label: "Cobranza", icon: Wallet },
   { href: "/compras", ruta: "compras", label: "Compras", icon: Truck },
   { href: "/reportes", ruta: "reportes", label: "Reportes", icon: BarChart3 },
+  { href: "/auditoria", ruta: "auditoria", label: "Auditoría", icon: ClipboardList },
   { href: "/configuracion", ruta: "configuracion", label: "Configuración", icon: Settings },
 ];
 

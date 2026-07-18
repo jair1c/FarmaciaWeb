@@ -33,6 +33,7 @@ export async function middleware(request: NextRequest) {
     request.nextUrl.pathname.startsWith("/cobranzas") ||
     request.nextUrl.pathname.startsWith("/compras") ||
     request.nextUrl.pathname.startsWith("/reportes") ||
+    request.nextUrl.pathname.startsWith("/auditoria") ||
     request.nextUrl.pathname.startsWith("/configuracion");
 
   if (!user && isDashboardRoute) {
@@ -43,5 +44,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/productos/:path*", "/ventas/:path*", "/caja/:path*", "/cobranzas/:path*", "/compras/:path*", "/reportes/:path*", "/configuracion/:path*"],
+  matcher: ["/dashboard/:path*", "/productos/:path*", "/ventas/:path*", "/caja/:path*", "/cobranzas/:path*", "/compras/:path*", "/reportes/:path*", "/auditoria/:path*", "/configuracion/:path*"],
 };

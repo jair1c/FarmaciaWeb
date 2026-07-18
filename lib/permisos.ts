@@ -13,7 +13,7 @@ export type Perfil = {
 // Este archivo NO importa nada de servidor (next/headers, etc.) a propósito,
 // porque también lo usan componentes cliente como el Sidebar.
 export const RUTAS_POR_ROL: Record<Rol, string[]> = {
-  admin: ["dashboard", "productos", "ventas", "caja", "cobranzas", "compras", "reportes", "configuracion"],
+  admin: ["dashboard", "productos", "ventas", "caja", "cobranzas", "compras", "reportes", "configuracion", "auditoria"],
   farmaceutico: ["productos", "ventas", "caja", "cobranzas"],
   cajero: ["ventas", "caja", "cobranzas"],
 };

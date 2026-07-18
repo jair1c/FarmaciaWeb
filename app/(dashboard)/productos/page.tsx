@@ -1,13 +1,16 @@
 import { createClient } from "@/lib/supabase/server";
 import { LoteBadge } from "@/components/LoteBadge";
 import { NuevoProductoModal } from "@/components/productos/NuevoProductoModal";
+import { EditarProductoModal } from "@/components/productos/EditarProductoModal";
 import { requireRol } from "@/lib/auth-server";
 
 async function getProductos() {
   const supabase = createClient();
   const { data } = await supabase
     .from("productos")
-    .select("id, nombre, precio_venta, stock_minimo, lotes(id, numero_lote, fecha_vencimiento, cantidad_actual)")
+    .select(
+      "id, nombre, categoria_id, codigo_barras, requiere_receta, precio_venta, stock_minimo, unidad_medida, activo, lotes(id, numero_lote, fecha_vencimiento, cantidad_actual)"
+    )
     .eq("activo", true)
     .order("nombre");
 
@@ -43,12 +46,13 @@ export default async function ProductosPage() {
               <th className="px-4 py-3">Precio</th>
               <th className="px-4 py-3">Stock total</th>
               <th className="px-4 py-3">Lotes</th>
+              <th className="px-4 py-3" />
             </tr>
           </thead>
           <tbody>
             {productos.length === 0 && (
               <tr>
-                <td colSpan={4} className="px-4 py-8 text-center text-pine-700/50">
+                <td colSpan={5} className="px-4 py-8 text-center text-pine-700/50">
                   Todavía no hay productos registrados. Empieza agregando el primero.
                 </td>
               </tr>
@@ -68,6 +72,22 @@ export default async function ProductosPage() {
                         <LoteBadge key={l.id} numeroLote={l.numero_lote} fechaVencimiento={l.fecha_vencimiento} />
                       ))}
                     </div>
+                  </td>
+                  <td className="px-4 py-3">
+                    <EditarProductoModal
+                      producto={{
+                        id: p.id,
+                        nombre: p.nombre,
+                        categoria_id: p.categoria_id,
+                        codigo_barras: p.codigo_barras,
+                        requiere_receta: p.requiere_receta,
+                        precio_venta: Number(p.precio_venta),
+                        stock_minimo: p.stock_minimo,
+                        unidad_medida: p.unidad_medida,
+                        activo: p.activo,
+                      }}
+                      categorias={categorias}
+                    />
                   </td>
                 </tr>
               );
