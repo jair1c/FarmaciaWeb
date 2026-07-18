@@ -28,6 +28,7 @@ Sistema web para administrar inventario (con control de lotes y vencimientos), v
    9. `sql/perfiles_email.sql`
    10. `sql/fix_recursion_rls.sql` ⚠️ crítico — corrige un bug de recursión infinita en las políticas de `perfiles` que causaba el rebote intermitente al login
    11. `sql/caja_funciones.sql` (requiere que el paso 10 ya esté aplicado, usa su función `is_admin()`)
+   12. `sql/devoluciones_funciones.sql` (requiere que el paso 11 ya esté aplicado, reemplaza `cerrar_caja()`)
 
 3. Copiar `.env.example` a `.env.local` y completar con las credenciales de tu proyecto Supabase (Settings → API) y, cuando lo tengas, tu token de Nubefact.
 
@@ -80,7 +81,8 @@ app/
     dashboard/            → panel con métricas del día
     productos/             → catálogo + lotes + vencimientos
     ventas/                → punto de venta: búsqueda, carrito y checkout
-    ventas/[id]/ticket/    → comprobante imprimible de la venta
+    ventas/historial/      → buscar ventas pasadas (reimprimir, devolver)
+    ventas/[id]/ticket/    → comprobante imprimible + devoluciones/anulación
     caja/                  → apertura/cierre de caja e historial de turnos
     cobranzas/             → cuentas por cobrar y registro de pagos
     compras/               → registro de compras (genera lotes automáticamente)
@@ -89,6 +91,7 @@ app/
   api/facturacion/        → integración con Nubefact
   api/ventas/             → registra una venta llamando a la función crear_venta
   api/caja/               → abre (POST) y cierra (PATCH) turnos de caja
+  api/devoluciones/       → registra una devolución/anulación (solo admin)
   api/cobranzas/          → registra un pago llamando a la función registrar_pago
   api/compras/            → registra una compra llamando a la función crear_compra
   api/categorias/         → crear/eliminar categorías
@@ -96,7 +99,7 @@ app/
   api/sucursales/         → crear sucursales (solo admin)
   api/usuarios/           → crear personal (Auth + perfil) y activar/desactivar (solo admin)
 components/               → Sidebar (filtrado por rol), LoteBadge, CerrarSesionButton, SelectorSucursal
-components/pos/            → VentaPOS (carrito), BotonImprimir, EmitirSunatButton
+components/pos/            → VentaPOS (carrito), BotonImprimir, EmitirSunatButton, DevolucionButton, HistorialVentasTable
 components/caja/           → AbrirCajaForm, EstadoCajaAbierta, CerrarCajaModal
 components/productos/      → NuevoProductoModal
 components/cobranzas/      → ListaCuentasPorCobrar, RegistrarPagoModal
@@ -116,6 +119,7 @@ sql/politicas_multisucursal.sql → el rol admin ve todas las sucursales; cajero
 sql/perfiles_email.sql     → agrega columna email a perfiles (para listar personal)
 sql/fix_recursion_rls.sql  → corrige recursión infinita en políticas de perfiles (función is_admin())
 sql/caja_funciones.sql     → control de caja: tabla turnos_caja, políticas RLS y funciones abrir_caja/cerrar_caja
+sql/devoluciones_funciones.sql → devoluciones/anulaciones: regresa stock al lote original, actualiza cerrar_caja
 middleware.ts             → protege las rutas del dashboard sin sesión
 ```
 
@@ -133,6 +137,18 @@ Paleta "botica": verde pino (`pine`), ámbar de frasco antiguo (`amber`), papel 
 6. ✅ Facturación electrónica SUNAT vía Nubefact (implementada — falta probar con tus credenciales reales)
 7. ✅ Multi-sucursal: admin ve todas las sucursales (con selector), cajero/farmacéutico solo la suya
 8. ✅ Control de caja: apertura/cierre de turno con cálculo automático de efectivo esperado vs. contado
+9. ✅ Devoluciones/anulaciones: por línea y cantidad parcial, con reingreso de stock al lote original
+
+## Sobre Devoluciones / Anulaciones
+
+Solo un **admin** puede registrarlas (afecta stock, caja y potencialmente los reportes de utilidad, así que lo dejé restringido). Desde **Ventas → Ver historial** buscas la venta por cliente, entras a su ticket, y ahí aparece el botón "Devolver / anular" si todavía queda algo disponible para devolver.
+
+Puedes devolver **líneas específicas con cantidades parciales** (ej. el cliente compró 3 cajas y devuelve 1), o usar "Devolver todo lo disponible" para anular la venta completa de un clic. El stock siempre regresa al **mismo lote** del que salió — así el historial de vencimientos no se distorsiona. Si se devuelve el 100% de lo vendido, la venta pasa automáticamente a estado "Anulado".
+
+**Una simplificación que hice a propósito:** el cálculo de caja asume que una devolución se paga con el mismo método que la venta original (si la venta fue en efectivo, la devolución resta de la caja en efectivo). Si en la práctica sueles devolver dinero por un medio distinto al de la venta original (por ejemplo, cobraste con Yape pero devuelves en efectivo), el cálculo del cierre de caja no lo reflejaría correctamente — avísame si esto te pasa seguido y lo ajustamos.
+
+Lo que **no** hice, a propósito, por quedar fuera del alcance actual: comunicar la devolución a SUNAT (una nota de crédito electrónica es un documento aparte que Nubefact también soporta, pero es una integración distinta a la que ya hicimos).
+
 
 ## Sobre Control de Caja
 
